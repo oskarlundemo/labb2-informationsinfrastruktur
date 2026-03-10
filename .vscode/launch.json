@@ -1,0 +1,29 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Starter API",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/PlacementService.Api/bin/Debug/net10.0/PlacementService.Api.dll",
+      "cwd": "${workspaceFolder}/PlacementService.Api",
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "stopAtEntry": false
+    },
+    {
+      "name": "Starter UI",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/PlacementService.Ui/bin/Debug/net10.0/PlacementService.Ui.dll",
+      "cwd": "${workspaceFolder}/PlacementService.Ui",
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "stopAtEntry": false
+    }
+  ]
+}

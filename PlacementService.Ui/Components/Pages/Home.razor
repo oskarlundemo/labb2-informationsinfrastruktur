@@ -1,0 +1,142 @@
+@page "/"
+@inject PlacementApiClient ApiClient
+
+<PageTitle>Platsbankens Lönesök</PageTitle>
+
+<h1>Platsbankens lönesök</h1>
+<p>Sök jobbannonser och få en sammanfattad lönebild per yrkesgrupp (SSYK).</p>
+
+<!-- SEARCH -->
+<EditForm Model="search" OnValidSubmit="HandleSearch" FormName="search-placements-form">
+    <DataAnnotationsValidator />
+    <div class="row g-3 align-items-end">
+        <div class="col-12 col-md-6">
+            <label class="form-label" for="query">Sökfras</label>
+            <InputText id="query" class="form-control" @bind-Value="search.Query" placeholder="t.ex. systemutvecklare" />
+            <ValidationMessage For="() => search.Query" />
+        </div>
+        <div class="col-12 col-md-4">
+            <label class="form-label" for="region">Region (valfritt)</label>
+            <InputText id="region" class="form-control" @bind-Value="search.Region" placeholder="t.ex. Stockholms län" />
+        </div>
+        <div class="col-6 col-md-2">
+            <label class="form-label" for="limit">Antal</label>
+            <InputNumber id="limit" class="form-control" @bind-Value="search.Limit" min="1" max="25" />
+            <ValidationMessage For="() => search.Limit" />
+        </div>
+        <div class="col-12">
+            <button class="btn btn-primary" type="submit" disabled="@isLoading">Sök</button>
+        </div>
+    </div>
+</EditForm>
+
+<!-- Loading / error / result-sections -->
+@if (isLoading)
+{
+    <p class="mt-3">Laddar...</p>
+}
+else if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="alert alert-warning mt-3">@errorMessage</div>
+}
+else if (results is not null)
+{
+    <div class="mt-3">
+        <p>Visar @results.Items.Count av @results.Total annonser.</p>
+
+        @if (summary?.Occupations?.Count > 0)
+        {
+            <!-- SUMMARY WARNING UPON PARTIAL SUCCESS -->
+            <!-- TODO: Check if there's a warning and, if so, display it -->
+            <!-- Step 1: Check whether there is a warning in summaryWarning or not -->
+
+            <!-- Step 2: If there is; Add a <div class="alert alert-warning"> that displays the warning. -->
+
+            <!-- SUMMARY RESULT TABLE -->
+            <!-- TODO: Create a table with the summary data from summary.Occupations -->
+            <!-- Step 1: Add descriptive text such as a header and create a <table> -->
+            
+            <!-- Step 2: Add a header row to the table and loop over summary.Occupations to populate the table body (<tbody>) -->
+
+            <!-- Step 3: List relevant data in a user friendly manner. I.e., take UX and format into consideration -->
+        }
+
+        <!-- AD RESULT TABLE -->
+        <!-- TODO: Create a table with the ad data from results.Items -->
+        <!-- Step 1: Follow the steps from the summary table problem above -->
+
+        <div class="d-flex gap-2">
+            <!-- PAGINATION -->
+            <!-- TODO: Call PrevPage / NextPage and disable buttons where applicable -->
+            <!-- HINT: Look at CanGoBack/CanGoForward. Use @onclick to call functions on button press. -->
+        </div>
+    </div>
+}
+
+@code {
+    private readonly SearchInput search = new();
+    private PlacementSearchResponse? results = null;
+    private PlacementSummaryResponse? summary = null;
+    private string? summaryCacheKey = null;
+    private bool isLoading = false;
+    private string? errorMessage = null;
+    private string? summaryWarning = null;
+
+    private bool CanGoBack => results is not null && search.Offset > 0;
+    private bool CanGoForward => results is not null && search.Offset + search.Limit < results.Total;
+
+    private async Task HandleSearch()
+    {
+        // TODO: Reset offset and call LoadAsync()
+        // NOTE: Task.CompletedTask should be replaced
+        await Task.CompletedTask;
+    }
+
+    private async Task PrevPage()
+    {
+        // TODO: lower the value of offset by limit and call LoadAsync()
+        // NOTE: Task.CompletedTask should be replaced
+        await Task.CompletedTask;
+    }
+
+    private async Task NextPage()
+    {
+        // TODO: increase the value of offset by limit and call LoadAsync()
+        // NOTE: Task.CompletedTask should be replaced
+        await Task.CompletedTask;
+    }
+
+    private async Task LoadAsync(bool refreshSummary)
+    {
+        // TODO: implement the load logic described in Section 6 within the UI guidebook. In short:
+        // Step 1: set isLoading to true, errorMessage to null, results to null, and summaryWarning to null.
+
+        // Step 2: check if search.Query is empty. If so, set errorMessage to inform the user that a search phrase is required. null the summary variables (summary, summaryCacheKey, summaryWarning), set isLoading to false, and exit.
+
+        // Step 3: fetch the search response from ApiClient.SearchAsync() by including (query, region, limit, offset, CancellationToken.None).
+
+        // Step 4: if the search succeeded and there is data in the response, check whether the summary needs to be reloaded. The summary should be reloaded if refreshSummary is true, summary is null, or the query/region has changed.
+        // HINT: summaryCacheKey can be a string combining query and region, e.g. $"{query}|{region}".
+
+        // If a reload is needed, call ApiClient.SummaryAsync() with (query, region, 100, 0, CancellationToken.None).
+        // On success, update summary and summaryCacheKey. On failure, set summaryWarning to a user-friendly message
+        // and null summary and summaryCacheKey, so the ad list is still shown.
+
+        // Step 5: handle errors that occur, e.g., if the search is unsuccessful and set a relevant errorMessage + reset summary, summaryCacheKey, and summaryWarning.
+
+        // Step 6: in the finally block, reset isLoading.
+    }
+
+    private sealed class SearchInput
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Sökfras krävs.")]
+        public string Query { get; set; } = string.Empty;
+
+        public string? Region { get; set; }
+
+        [System.ComponentModel.DataAnnotations.Range(1, 25, ErrorMessage = "Antal måste vara mellan 1 och 25.")]
+        public int Limit { get; set; } = 10;
+
+        public int Offset { get; set; }
+    }
+}

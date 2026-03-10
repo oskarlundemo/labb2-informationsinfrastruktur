@@ -1,0 +1,8 @@
+namespace PlacementService.Api.Models;
+
+public sealed record OccupationSummaryItem(
+    string? OccupationLabel,
+    string? OccupationSsyk,
+    int AdsCount,
+    SalaryInfo? Salary
+);

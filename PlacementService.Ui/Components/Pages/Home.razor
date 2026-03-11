@@ -1,4 +1,7 @@
 @page "/"
+@using System.Text.Json
+@using System.Runtime.InteropServices
+@using System.Data
 @inject PlacementApiClient ApiClient
 
 <PageTitle>Platsbankens Lönesök</PageTitle>
@@ -52,6 +55,8 @@ else if (results is not null)
 
             <!-- Step 2: If there is; Add a <div class="alert alert-warning"> that displays the warning. -->
 
+
+
             <!-- SUMMARY RESULT TABLE -->
             <!-- TODO: Create a table with the summary data from summary.Occupations -->
             <!-- Step 1: Add descriptive text such as a header and create a <table> -->
@@ -65,6 +70,20 @@ else if (results is not null)
         <!-- TODO: Create a table with the ad data from results.Items -->
         <!-- Step 1: Follow the steps from the summary table problem above -->
 
+        @if (results?.Items?.Count > 0) {
+
+            foreach (PlacementItem row in results.Items) {
+                <div class="bg-gray-200 rounded-2xl">
+                    <h1>@row.Headline</h1>
+                    <h2>@row.Employer</h2>
+
+                    <p>@row.Salary.MonthlySalarySek SEK</p>
+                </div>
+            }
+        }
+
+    
+
         <div class="d-flex gap-2">
             <!-- PAGINATION -->
             <!-- TODO: Call PrevPage / NextPage and disable buttons where applicable -->
@@ -74,7 +93,7 @@ else if (results is not null)
 }
 
 @code {
-    private readonly SearchInput search = new();
+    private readonly SearchInput search = new SearchInput();
     private PlacementSearchResponse? results = null;
     private PlacementSummaryResponse? summary = null;
     private string? summaryCacheKey = null;
@@ -88,8 +107,9 @@ else if (results is not null)
     private async Task HandleSearch()
     {
         // TODO: Reset offset and call LoadAsync()
-        // NOTE: Task.CompletedTask should be replaced
-        await Task.CompletedTask;
+
+        search.Offset = 0;;
+        await LoadAsync(refreshSummary: true); 
     }
 
     private async Task PrevPage()
@@ -110,21 +130,66 @@ else if (results is not null)
     {
         // TODO: implement the load logic described in Section 6 within the UI guidebook. In short:
         // Step 1: set isLoading to true, errorMessage to null, results to null, and summaryWarning to null.
+        
 
-        // Step 2: check if search.Query is empty. If so, set errorMessage to inform the user that a search phrase is required. null the summary variables (summary, summaryCacheKey, summaryWarning), set isLoading to false, and exit.
+        try {
 
-        // Step 3: fetch the search response from ApiClient.SearchAsync() by including (query, region, limit, offset, CancellationToken.None).
+            // Step 1: set isLoading to true, errorMessage to null, results to null, and summaryWarning to null.
 
-        // Step 4: if the search succeeded and there is data in the response, check whether the summary needs to be reloaded. The summary should be reloaded if refreshSummary is true, summary is null, or the query/region has changed.
-        // HINT: summaryCacheKey can be a string combining query and region, e.g. $"{query}|{region}".
+            isLoading = true;
+            errorMessage = null;
+            results = null; 
+            summaryWarning = null; 
+            
+             // Step 2: check if search.Query is empty. If so, set errorMessage to inform the user that a search phrase is required. null the summary variables (summary, summaryCacheKey, summaryWarning), set isLoading to false, and exit.
 
-        // If a reload is needed, call ApiClient.SummaryAsync() with (query, region, 100, 0, CancellationToken.None).
-        // On success, update summary and summaryCacheKey. On failure, set summaryWarning to a user-friendly message
-        // and null summary and summaryCacheKey, so the ad list is still shown.
+            if (string.IsNullOrWhiteSpace(search.Query)) {
+                isLoading = false;
+                errorMessage = "Search query is required!";
+                summary = null; 
+                summaryCacheKey = null; 
+                summaryWarning = null;
+                return; 
+            }
 
-        // Step 5: handle errors that occur, e.g., if the search is unsuccessful and set a relevant errorMessage + reset summary, summaryCacheKey, and summaryWarning.
+             // Step 3: fetch the search response from ApiClient.SearchAsync() by including (query, region, limit, offset, CancellationToken.None).
 
-        // Step 6: in the finally block, reset isLoading.
+
+            var response = await ApiClient.SearchAsync(search.Query, search.Region, search.Limit, search.Offset, CancellationToken.None);
+
+            // Step 4: if the search succeeded and there is data in the response, check whether the summary needs to be reloaded. 
+            // The summary should be reloaded if refreshSummary is true, summary is null, or the query/region has changed.
+            // HINT: summaryCacheKey can be a string combining query and region, e.g. $"{query}|{region}".
+
+            if (response.IsSuccess) {
+
+                Console.WriteLine(JsonSerializer.Serialize(response, new JsonSerializerOptions { WriteIndented = true }));
+                // if (refreshSummary || summary is null || data.Region != search.Region || data.Query != search.Query) {
+                //    Console.Write("Reload summary");
+                // }
+
+
+                results = response.Data;
+                
+            }
+
+
+            // If a reload is needed, call ApiClient.SummaryAsync() with (query, region, 100, 0, CancellationToken.None).
+            // On success, update summary and summaryCacheKey. On failure, set summaryWarning to a user-friendly message
+            // and null summary and summaryCacheKey, so the ad list is still shown.
+
+
+        } catch (Exception e) {
+
+            // Step 5: handle errors that occur, e.g., if the search is unsuccessful and set a relevant errorMessage + reset summary, summaryCacheKey, and summaryWarning.
+            Console.WriteLine($"An error occured {e}"); 
+            errorMessage = $"An error occured {e}";
+
+        } finally {
+             // Step 6: in the finally block, reset isLoading.
+             isLoading = false;
+        }
+        
     }
 
     private sealed class SearchInput

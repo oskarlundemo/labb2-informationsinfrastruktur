@@ -9,6 +9,32 @@ namespace PlacementService.Api.Services;
 
 public sealed class JobSearchClient
 {
+    private static readonly IReadOnlyDictionary<string, string> RegionCodeByName =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["stockholm"] = "01",
+            ["uppsala"] = "03",
+            ["sodermanland"] = "04",
+            ["ostergotland"] = "05",
+            ["jonkoping"] = "06",
+            ["kronoberg"] = "07",
+            ["kalmar"] = "08",
+            ["gotland"] = "09",
+            ["blekinge"] = "10",
+            ["skane"] = "12",
+            ["halland"] = "13",
+            ["vastra gotaland"] = "14",
+            ["varmland"] = "17",
+            ["orebro"] = "18",
+            ["vastmanland"] = "19",
+            ["dalarna"] = "20",
+            ["gavleborg"] = "21",
+            ["vasternorrland"] = "22",
+            ["jamtland"] = "23",
+            ["vasterbotten"] = "24",
+            ["norrbotten"] = "25"
+        };
+
     private readonly HttpClient _httpClient;
     private readonly JobSearchOptions _options;
     private readonly ILogger<JobSearchClient> _logger;
@@ -32,9 +58,10 @@ public sealed class JobSearchClient
             ["offset"] = offset.ToString()
         };
 
-        if (!string.IsNullOrWhiteSpace(region))
+        var normalizedRegion = NormalizeRegionForQuery(region);
+        if (!string.IsNullOrWhiteSpace(normalizedRegion))
         {
-            queryParams["region"] = region;
+            queryParams["region"] = normalizedRegion;
         }
 
         var relativeUrl = QueryHelpers.AddQueryString("search", queryParams);
@@ -144,25 +171,12 @@ public sealed class JobSearchClient
             JsonHelpers.GetString(hit, "occupation_field", "0", "label"));
 
         var occupationSsyk = FirstNonEmpty(
-            // Group-level taxonomy usually aligns better with SCB salary tables, hence the group first.
+            // Group-level taxonomy usually aligns better with SCB salary tables.
             JsonHelpers.GetString(hit, "occupation_group", "legacy_ams_taxonomy_id"),
-            JsonHelpers.GetString(hit, "occupation_group", "0", "legacy_ams_taxonomy_id"),
-            JsonHelpers.GetString(hit, "occupation", "legacy_ams_taxonomy_id"),
-            JsonHelpers.GetString(hit, "occupation", "0", "legacy_ams_taxonomy_id"),
-            JsonHelpers.GetString(hit, "legacy_ams_taxonomy_id"),
-            JsonHelpers.GetString(hit, "occupation_field", "legacy_ams_taxonomy_id"),
-            JsonHelpers.GetString(hit, "occupation_field", "0", "legacy_ams_taxonomy_id"),
-            JsonHelpers.GetString(hit, "occupation", "code"),
-            JsonHelpers.GetString(hit, "occupation", "0", "code"),
-            JsonHelpers.GetString(hit, "occupation_group", "code"),
-            JsonHelpers.GetString(hit, "occupation_group", "0", "code"),
-            JsonHelpers.GetString(hit, "occupation_field", "code"),
-            JsonHelpers.GetString(hit, "occupation_field", "0", "code"));
+            JsonHelpers.GetString(hit, "occupation", "legacy_ams_taxonomy_id"));
 
         var publishedAt = JsonHelpers.GetDateTimeOffset(hit, "publication_date")
             ?? JsonHelpers.GetDateTimeOffset(hit, "published");
-
-        // TODO: extract any additional fields you need (for example "employment_type", "description" or "application_url") from the JSON and include them in the JobSearchRawPlacement below and PlacementItem.
 
         return new JobSearchRawPlacement(
             id,
@@ -177,6 +191,54 @@ public sealed class JobSearchClient
 
     private static string? FirstNonEmpty(params string?[] values)
         => values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+
+    private static string? NormalizeRegionForQuery(string? region)
+    {
+        if (string.IsNullOrWhiteSpace(region))
+        {
+            return null;
+        }
+
+        var trimmed = region.Trim();
+        if (trimmed.Length >= 2 && char.IsDigit(trimmed[0]) && char.IsDigit(trimmed[1]))
+        {
+            return trimmed[..2];
+        }
+
+        if (trimmed.All(char.IsDigit) && int.TryParse(trimmed, out var code))
+        {
+            if (code is >= 1 and <= 25)
+            {
+                return code.ToString("00");
+            }
+
+            return trimmed;
+        }
+
+        var normalizedName = NormalizeRegionName(trimmed);
+        if (RegionCodeByName.TryGetValue(normalizedName, out var mappedCode))
+        {
+            return mappedCode;
+        }
+
+        return trimmed;
+    }
+
+    private static string NormalizeRegionName(string value)
+    {
+        var normalized = value
+            .Trim()
+            .ToLowerInvariant()
+            .Replace("å", "a")
+            .Replace("ä", "a")
+            .Replace("ö", "o")
+            .Replace("s län", string.Empty)
+            .Replace("s lan", string.Empty)
+            .Replace(" län", string.Empty)
+            .Replace(" lan", string.Empty);
+
+        return string.Join(' ', normalized.Split(' ', StringSplitOptions.RemoveEmptyEntries));
+    }
 
     private sealed record JobSearchRawPlacement(
         string Id,

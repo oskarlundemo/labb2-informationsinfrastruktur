@@ -31,8 +31,6 @@ public sealed class ScbPxWebClient
 
     public async Task<SalaryInfo?> GetSalaryAsync(string ssyk, int? year, CancellationToken cancellationToken)
     {
-        Console.WriteLine("Year" + year);
-        Console.WriteLine("Ssyk" + ssyk);
 
         var normalizedSsyk = NormalizeSsyk(ssyk, _options.NormalizeSsykTo3Digits);
         if (string.IsNullOrWhiteSpace(normalizedSsyk))

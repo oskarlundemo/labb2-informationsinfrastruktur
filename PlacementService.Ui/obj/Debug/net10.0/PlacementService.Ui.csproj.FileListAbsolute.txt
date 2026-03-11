@@ -81,3 +81,4 @@
 /Users/oskarlundemo/Desktop/Skola/VT 26/Informationsinfrastruktur/Laborationer/starter/PlacementService.Ui/obj/Debug/net10.0/PlacementService.Ui.pdb
 /Users/oskarlundemo/Desktop/Skola/VT 26/Informationsinfrastruktur/Laborationer/starter/PlacementService.Ui/obj/Debug/net10.0/PlacementService.Ui.genruntimeconfig.cache
 /Users/oskarlundemo/Desktop/Skola/VT 26/Informationsinfrastruktur/Laborationer/starter/PlacementService.Ui/obj/Debug/net10.0/ref/PlacementService.Ui.dll
+/Users/oskarlundemo/Desktop/Skola/VT 26/Informationsinfrastruktur/Laborationer/starter/PlacementService.Ui/obj/Debug/net10.0/PlacementService.Ui.sourcelink.json

@@ -156,46 +156,32 @@ public sealed class PlacementServiceFacade
         {
             return null;
         }
-            
 
         // Step 2: build a cache key combining the SSYK and the year (or "latest" if year is null) and check the IMemoryCache for a cached SalaryInfo
         // HINT: TryGetValue returns true/false and the out parameter will hold the cached value.
 
-        string yearValidate; 
-        
-        if  (year is null)
-        {
-            yearValidate = "latest";
-        }
-        else
-        {
-            yearValidate = year.ToString();
-        }
-
-        string cachedKey = $"{ssyk}-{yearValidate}";
-        bool isCached = _cache.TryGetValue(cachedKey, out var cachedValue);
-
         // Step 3: if not cached, call the SCB client to fetch the salary for this SSYK and year
         // HINT: await _scbPxWebClient.GetSalaryAsync(normalized, year, cancellationToken)
 
-        if (!isCached)
-        {
-            Console.Write("Not cached");
-            var result = await _scbPxWebClient.GetSalaryAsync(noramlisedSsyk, year , cancellationToken); 
-
-            _cache.Set(cachedKey, result, TimeSpan.FromMinutes(_scbOptions.CacheMinutes));
-
-            return result;
-            // Anropa metod 
-        } else
-        {
-            _cache.TryGetValue(cachedKey, out var cachedSalary);
-            return (SalaryInfo?)cachedSalary;
-        }
-
-        // Step 4: store the fetched salary in the cache with an expiration based on _scbOptions.CacheMinutes
-
+        // Step 4: store the fetched salary in the ßcache with an expiration based on _scbOptions.CacheMinutes
         // TODO: return the salary (or null if SCB has no data)
+
+        if (year is null)
+        {
+        return await GetSalaryCachedAsync(noramlisedSsyk, cancellationToken);
+        }
+        else
+        {
+            var cacheKey = BuildCacheKey(noramlisedSsyk, year);
+            if (_cache.TryGetValue(cacheKey, out SalaryInfo? cached))
+            {
+                return cached;
+            }
+
+            var salary = await _scbPxWebClient.GetSalaryAsync(noramlisedSsyk, year, cancellationToken);
+            _cache.Set(cacheKey, salary, TimeSpan.FromMinutes(_scbOptions.CacheMinutes));
+            return salary;
+        }
     }
 
     private async Task<SalaryInfo?> GetSalaryCachedAsync(string ssyk, CancellationToken cancellationToken)
